@@ -1,7 +1,8 @@
+
 //
-// Student Name:
-// Student ID:
-// Student Email Address:
+// Student Name: Luis Fernando Garcia
+// Student ID: 0616115	
+// Student Email Address: luisgarcia26284@gmail.com
 //
 //
 // 3D Game Programming
@@ -62,6 +63,7 @@ void BasicTutorial_00::createViewports(void)
 	vp2->setOverlaysEnabled(false);
 	vp2->setSkiesEnabled(false);
 }
+
 void BasicTutorial_00::createRobotCircles(bool setOneBig,int circle_radius){
 	//create cubed-circle
 	//lets start with 10 cubes
@@ -99,6 +101,7 @@ void BasicTutorial_00::createRobotCircles(bool setOneBig,int circle_radius){
 		cubeNode->yaw(Radian(pi/2),Node::TS_LOCAL);
 		//cubeNode->setR
 		//set idle animation
+		robotMap.insert(pair<std::string,SceneNode*>(cubeNode->getName(),cubeNode));
 		AnimationState * animState = beam->getAnimationState("Idle");
 		animState->setLoop(true);
 		animState->setEnabled(true);
@@ -106,6 +109,8 @@ void BasicTutorial_00::createRobotCircles(bool setOneBig,int circle_radius){
 		robotEntities.insert(pair<std::string,Entity*>(cubeNode->getName(),beam));
 	}
 }
+/// Brief description.
+/** Detailed description. */
 void BasicTutorial_00::setUpSceneBases(){
 	mSceneMgr->setAmbientLight( ColourValue( 0.4, 0.4, 0.4 ) ); 
 	//Now we create the shadow
@@ -216,12 +221,10 @@ bool BasicTutorial_00::mousePressed( const OIS::MouseEvent &arg, OIS::MouseButto
 bool BasicTutorial_00::frameStarted(const FrameEvent &evt)
 {
 	//rotate the light
-	
 	moveLight(evt);
 	checkRectSect(evt);
 	moveRobot(walkingTarget,evt);//will check inside if there are any robots to be moved
 	animsAddTime(evt);
-	checkForCollision(evt);
     return BaseApplication::frameStarted(evt);
 	
 
@@ -432,7 +435,7 @@ void BasicTutorial_00::moveRobot(Vector3 moveTo,const FrameEvent & evt){
 	//check if there is a robot selected 
 
 	if(selectedRobots.size() != 0 && startWalking == true){
-		Ogre::LogManager::getSingletonPtr()->logMessage("About to move robot, these are the amount of selectedRobots: "+ Ogre::StringConverter::toString(selectedRobots.size()));
+		//Ogre::LogManager::getSingletonPtr()->logMessage("About to move robot, these are the amount of selectedRobots: "+ Ogre::StringConverter::toString(selectedRobots.size()));
 		std::map<string,SceneNode*>::iterator it;
 		for(it = selectedRobots.begin();it!=selectedRobots.end();it++){
 			//it->second->setPosition(moveTo);
@@ -445,9 +448,17 @@ void BasicTutorial_00::moveRobot(Vector3 moveTo,const FrameEvent & evt){
 				//Ogre::LogManager::getSingletonPtr()->logMessage("Our normalized vector is x:"+Ogre::StringConverter::toString(direction.x)+" y:"+Ogre::StringConverter::toString(direction.y)+" z:"+Ogre::StringConverter::toString(direction.z));
 			
 				it->second->lookAt(walkingTarget,Node::TS_WORLD);
+				
+				//orientate properly
+				Vector3 localY = it->second->getOrientation() * Vector3::UNIT_Y;
+				Quaternion quat = localY.getRotationTo(Vector3::UNIT_Y);                        
+				it->second->rotate(quat, Node::TS_PARENT);
+				
 				it->second->yaw(Radian(3.1415/2),Node::TS_LOCAL);
 				curPos += robotSpeed*direction*evt.timeSinceLastFrame;
+				//check for collision before assigning new pos
 				it->second->setPosition(curPos);
+				checkForCollision(it->second);
 			}else{	
 				it->second->setPosition(walkingTarget);
 				stopRoboto(it);
@@ -489,9 +500,65 @@ void BasicTutorial_00::selectedRobotsWalkNow(){//Basically only does animation
 		it++;
 	}
 }
-void BasicTutorial_00::checkForCollision(const FrameEvent& evt){
-	//we shall go through the robot scenenodes and check if 
+bool BasicTutorial_00::checkIndividualCollision(const Vector3 & a, const Vector3 & b,bool bIsSphere){
+	
+	float distance = sqrt(((a.x - b.x) * (a.x-b.x))+ ((a.z - b.z) * (a.z-b.z)));
+	int otherRadius = (bIsSphere == true)? sphereRadius : robotRadius;
+	if(distance < robotRadius + otherRadius)
+	{
+    //AABBs are overlapping
+		Ogre::LogManager::getSingletonPtr()->logMessage("Colliding Perrito");
+		return true;
+	}
+	return false;
 }
+void BasicTutorial_00::checkForCollision(SceneNode * mRobot){
+	//we shall go through the robot scenenodes and check if 
+	Vector3 robotPos = mRobot->getPosition();
+	Vector3 otherRobotPos;
+	bool flago=false;
+	float dx, dz,radisum,length,unitx,unitz;
+	if(!selectedRobots.empty()){
+		std::map<std::string,SceneNode*>::iterator it = robotMap.begin();
+		while(it != robotMap.end()){	
+			otherRobotPos = it->second->getPosition();
+			flago = checkIndividualCollision(robotPos,it->second->getPosition(),false);
+			if(flago){
+				//check collision point  
+				dx = otherRobotPos.x - robotPos.x;
+				dz = otherRobotPos.z - robotPos.z;
+				radisum = robotRadius + robotRadius;
+				length = sqrt(dx*dx+dz*dz);
+				length = (length == 0)?1:length;
+				unitx = dx/length;
+				unitz = dz/length;
+
+				otherRobotPos.x = robotPos.x + (radisum +2)*unitx;
+				otherRobotPos.z = robotPos.z + (radisum +2)*unitz;
+				it->second->setPosition(otherRobotPos);
+			}
+			//check with sphere
+			it++;
+			}
+	}
+	flago = checkIndividualCollision(robotPos,spherePos,true);
+	if(flago){
+			//check collision point  
+			dx = robotPos.x - spherePos.x;
+			dz = robotPos.z - spherePos.z;
+			radisum = robotRadius + sphereRadius;
+			length = sqrt(dx*dx+dz*dz);
+			length = (length == 0)?1:length;
+			unitx = dx/length;
+			unitz = dz/length;
+
+			robotPos.x = spherePos.x + (radisum +2)*unitx;
+			robotPos.z = spherePos.z + (radisum +2)*unitz;
+			mRobot->setPosition(robotPos);
+	}
+	
+}
+
 void BasicTutorial_00::stopRoboto(std::map<std::string,SceneNode*>::iterator it){
 				Entity * ento = robotEntities.find(it->first)->second;//(Entity*) it->second->getAttachedObject(0);
 				AnimationState* as = animStates.find(it->first)->second;
