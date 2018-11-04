@@ -1,17 +1,3 @@
-/*!
-\brief 3D Game Programming
-\n
-My Name: Luis Fernando Garcia Zambrano 
-\n
-My ID: 0616115
-\n
-My Email: luisgarcia26284@gmail.com
-\n Date: 2018/11/3
-
-This is an assignment for 3D Game Programming Class
-*///
-
-//
 // Student Name: Luis Fernando Garcia
 // Student ID: 0616115
 // Student Email Address: luisgarcia26284@gmail.com
@@ -36,6 +22,14 @@ using namespace Ogre;
 #define MOTION_TYPE_IDLE 1
 #define MOTION_TYPE_WALK 2
 
+
+/**
+*	3D Game Programming.\n
+ *  Name: Luis Fernando Garcia \n
+ *	ID:	0616115\n
+ *	Email:	luisgarcia26284@gmail.com\n
+ *	This is an Assignment of 3D Game Programming\n
+ */
 class BasicTutorial_00 : public BaseApplication
 {
 private:
@@ -43,12 +37,14 @@ private:
 	void setOffParticleSystem(Ogre::SceneNode *fNode, const Ogre::String &pname, const Ogre::Vector3 &pos); 
 public:
 	//vafs
-	int const static lightRotRadius = 400;
+	int const static lightRotRadius = 300;
+	int const static lightHeight = 400;
 	int const static robotSpeed = 80;
 	int const static stopDistanceThreshold = 10;
 	int const static robotHeight = 5;
 	int const static robotRadius = 20;
 	int const static sphereRadius = 70;
+	int const static animSpeed = 2.5;
 
 	SOUND *mSound;
 protected:
@@ -73,8 +69,9 @@ protected:
 	Ogre::Camera * mCamera2;
 	ParticleSystem* elParticulo;
 
-
+	/*! \brief Creates Camera that will be used for the viewports*/	
 	virtual void createCamera();
+	/*! \brief Creates two viewports, the main one and the one on the top right coner*/	
 	virtual void createViewports();
 	//My stuff
 	Real left, right, top , bottom;
@@ -139,10 +136,14 @@ protected:
 	virtual void stopAllRobots();
 	//ENDo my stuff
 
+	/*! \brief Responds to mouse movement*/	
 	virtual bool mouseMoved( const OIS::MouseEvent &arg );
+	/*! \brief Responds to pressing mouse*/	
     virtual bool mousePressed( const OIS::MouseEvent &arg, OIS::MouseButtonID id );
+	/*! \brief Responds to releaseing mouse click*/	
     virtual bool mouseReleased( const OIS::MouseEvent &arg, OIS::MouseButtonID id );
-virtual bool frameStarted(const FrameEvent &evt);
+	/*! \brief Called every frame, everything related to movement will be changed here*/	
+	virtual bool frameStarted(const FrameEvent &evt);
 public:
 	BasicTutorial_00(void);
 /*! \brief This function is called at the creation of the scene, its main purpose its to abstract the creation of circles of robots of given radius circle_radius..

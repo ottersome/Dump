@@ -19,7 +19,8 @@ using namespace Ogre;
 using namespace std;
 BasicTutorial_00::BasicTutorial_00(void) {
 	lightAngle = 0;
-
+	mSound = new SOUND();
+	mSound->init();
 	
 }
 
@@ -101,6 +102,11 @@ void BasicTutorial_00::createRobotCircles(bool setOneBig,int circle_radius){
 		cubeNode->yaw(Radian(pi/2),Node::TS_LOCAL);
 		//cubeNode->setR
 		//set idle animation
+		//orientate properly
+		Vector3 localY = cubeNode->getOrientation() * Vector3::UNIT_Y;
+		Quaternion quat = localY.getRotationTo(Vector3::UNIT_Y);                        
+		cubeNode->rotate(quat, Node::TS_PARENT);
+
 		robotMap.insert(pair<std::string,SceneNode*>(cubeNode->getName(),cubeNode));
 		AnimationState * animState = beam->getAnimationState("Idle");
 		animState->setLoop(true);
@@ -212,7 +218,8 @@ bool BasicTutorial_00::mousePressed( const OIS::MouseEvent &arg, OIS::MouseButto
 {
 	if(id==OIS::MB_Left){
 		//make sure when pressing left no robots are walking 
-		stopAllRobots();
+		if(!selectedRobots.empty())
+			stopAllRobots();
 		mousePressedRect();
 	}
 	return BaseApplication::mousePressed( arg, id );
@@ -267,7 +274,7 @@ void BasicTutorial_00::moveLight(const FrameEvent &evt){
 
 	Vector3 newOffset(Ogre::Math::Cos(lightAngle),10,Ogre::Math::Sin(lightAngle)); 
 	newOffset *= lightRotRadius;
-
+	newOffset.y = lightHeight;
 	lighto->setPosition(newOffset);
 }
 void BasicTutorial_00::checkRectSect(const FrameEvent &){/*
@@ -308,6 +315,10 @@ void BasicTutorial_00::mouseReleasedRect(){
 	//unset some stuff
 	pressedAlready = false;
 	mSelRect->setVisible(false);
+	if(left > right)
+		std::swap(left,right);
+	if(top > bottom)
+		std::swap(top,bottom);
 	if ((left==right && top==bottom)) {
 	//call single click action 
 		onSpotClickRect();
@@ -420,7 +431,7 @@ void BasicTutorial_00::getWalkingTarget(){
 	RaySceneQueryResult result = rsq->execute();
 	RaySceneQueryResult::iterator itr = result.begin();
 	for(itr;itr != result.end();itr++){
-		Ogre::LogManager::getSingletonPtr()->logMessage("Collision with : "+itr->movable->getParentSceneNode()->getName());
+		//Ogre::LogManager::getSingletonPtr()->logMessage("Collision with : "+itr->movable->getParentSceneNode()->getName());
 		if(itr->movable){
 			walkingTarget = mRay.getPoint(itr->distance);
 			walkingTarget.y = robotHeight;
@@ -477,7 +488,7 @@ void BasicTutorial_00::animsAddTime(const FrameEvent & evt){
 	std::map<std::string,AnimationState*>::iterator it = animStates.begin();
 	while(it != animStates.end()){
 		if(it->second->getEnabled() == true){
-		it->second->addTime(evt.timeSinceLastFrame);
+			it->second->addTime(evt.timeSinceLastFrame*animSpeed);
 		}
 		it++;
 	}
@@ -507,7 +518,7 @@ bool BasicTutorial_00::checkIndividualCollision(const Vector3 & a, const Vector3
 	if(distance < robotRadius + otherRadius)
 	{
     //AABBs are overlapping
-		Ogre::LogManager::getSingletonPtr()->logMessage("Colliding Perrito");
+		//Ogre::LogManager::getSingletonPtr()->logMessage("Colliding Perrito");
 		return true;
 	}
 	return false;
@@ -571,10 +582,10 @@ void BasicTutorial_00::stopRoboto(std::map<std::string,SceneNode*>::iterator it)
 				as->setLoop(true);
 				animStates.find(it->first)->second = as;
 				selectedRobots.erase(it);
-				/* TODO:fix this
-				mSound = new SOUND();
-				mSound->init();
-				*/
+				
+
+				mSound->play();
+				
 }
 void BasicTutorial_00::stopAllRobots(){
 	startWalking = false;
